@@ -1,15 +1,14 @@
 # tizio_query
 I've made this library to allow faster management of queries.
-To update, since it is currently really basic.
+I will keep on updating this for a while, since it is currently really basic.
 
 ## How to use
 Import the .inc file, then change the values of the variables (placed in the first 7 rows of the file):
 
-$host = 'localhost';
-$password = '';
-$user = 'root';
-$db = 'tizio_dbName';
-Into whatever your database uses.
+$host = 'localhost';<br>
+$password = '';<br>
+$user = 'root';<br>
+$db = 'tizio_dbName';<br>
 
 If needed, override $conn using your own script.
 
