@@ -5,7 +5,7 @@ $host = 'localhost';
 $password = '';
 $user = 'root';
 $db = 'tizio_dbName';
-$conn = mysqli_connect($host, $user, $password, $db) or die("Error during the connection with the server");
+$conn = mysqli_connect($host, $user, $password, $db);
 
 /**
  * Saves all the data inside the SQL database.
@@ -14,6 +14,7 @@ $conn = mysqli_connect($host, $user, $password, $db) or die("Error during the co
  * @param Array $assArray An associative array with all the attributes and values to add to the table
  * @returns Boolean True or false based on if it was a successful operation or not
  */
+
 function save_data(mysqli $conn, $tabName, $assArray) {
     // Adds the keys to the command
     $command = "INSERT INTO $tabName(";
