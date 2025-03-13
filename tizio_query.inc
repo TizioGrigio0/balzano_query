@@ -59,6 +59,7 @@ function save_data(mysqli $conn, $tabName, $assArray) {
  * @param String $queryString A string of the query
  * @param string $noResultMessage Is the message that will be printed in case no results appear
  * @param string $failMessage Is the message that will be printed in case some error happens.
+ * @return int The number of results of the query
  */
 function print_query(mysqli $conn, $queryString,
                      $noResultMessage = "No results found according to the search criteria...",
@@ -67,7 +68,8 @@ function print_query(mysqli $conn, $queryString,
     $query = mysqli_query($conn, $queryString);
 
     if ($query) {
-        if (mysqli_num_rows($query) != 0) { // If there is at least 1 result
+        $results = mysqli_num_rows($query);
+        if ($results != 0) { // If there is at least 1 result
             $i = 0;
             echo "<table class='tizio_formattedTable'>";
             while($row = mysqli_fetch_assoc($query)) {
@@ -85,13 +87,14 @@ function print_query(mysqli $conn, $queryString,
                 echo "</tr>";
             } // while
             echo "</table>";
+            return $results;
         } else { // If the result is empty
             echo "<i>$noResultMessage</i>";
         }
     } else {
         echo "<i>$failMessage</i>";
     } // else closes
-
+    return 0;
 } // print_query function
 
 /**
