@@ -12,10 +12,10 @@ $conn = mysqli_connect($host, $user, $password, $db);
  * @param mysqli $conn is the connection to the database
  * @param String $tabName the name of the table to which you add values
  * @param Array $assArray An associative array with all the attributes and values to add to the table
- * @returns Boolean True or false based on if it was a successful operation or not
+ * @return Boolean True or false based on if it was a successful operation or not
  */
 
-function save_data(mysqli $conn, $tabName, $assArray) {
+function save_data(mysqli $conn, string $tabName, array $assArray): bool {
     // Adds the keys to the command
     $command = "INSERT INTO $tabName(";
     $i = 0;
@@ -61,15 +61,15 @@ function save_data(mysqli $conn, $tabName, $assArray) {
  * @param string $failMessage Is the message that will be printed in case some error happens.
  * @return int The number of results of the query
  */
-function print_query(mysqli $conn, $queryString,
-                     $noResultMessage = "No results found according to the search criteria...",
-                     $failMessage = "The query could not be completed...") {
+function print_query(mysqli $conn, string $queryString,
+                            string $noResultMessage = "No results found according to the search criteria...",
+                            string $failMessage = "The query could not be completed..."): int {
 
     $query = mysqli_query($conn, $queryString);
 
     if ($query) {
-        $results = mysqli_num_rows($query);
-        if ($results != 0) { // If there is at least 1 result
+        $resultsNum = mysqli_num_rows($query);
+        if ($resultsNum != 0) { // If there is at least 1 result
             $i = 0;
             echo "<table class='tizio_formattedTable'>";
             while($row = mysqli_fetch_assoc($query)) {
@@ -87,7 +87,7 @@ function print_query(mysqli $conn, $queryString,
                 echo "</tr>";
             } // while
             echo "</table>";
-            return $results;
+            return $resultsNum;
         } else { // If the result is empty
             echo "<i>$noResultMessage</i>";
         }
@@ -102,7 +102,7 @@ function print_query(mysqli $conn, $queryString,
  * @param Array $assArray The array to format
  * @return Array The new formatted array
  */
-function format_array($assArray) {
+function format_array(array $assArray): array {
     $newArray = array();
     foreach($assArray as $key => $value) {
         $newArray[$key] =  trim(ucwords($value));
@@ -115,7 +115,7 @@ function format_array($assArray) {
  * @param $assArray Array The array to secure
  * @return Array The new secured array
  */
-function secure_array($conn, $assArray) {
+function secure_array(mysqli $conn, array $assArray): array {
     $newArray = array();
     foreach($assArray as $key => $value) {
         $newArray[$key] =  mysqli_real_escape_string($conn, stripslashes($value));
@@ -140,16 +140,17 @@ function secure_array($conn, $assArray) {
  * @param string $noResultMessage Is the message that will be printed in case no results appear
  * @param string $failMessage Is the message that will be printed in case some error happens.
  */
-function pdf_query(mysqli $conn, $queryString, FPDF $pdf, $margin = -1, $cellWidth = 60, $fontSize = 12, $border = 1,
-                   $noResultMessage = "No results found according to the search criteria...",
-                   $failMessage = "The query could not be completed...") {
+function pdf_query(mysqli $conn, $queryString, FPDF $pdf, int $margin = -1, int $cellWidth = 60, int $fontSize = 12, int $border = 1,
+                          string $noResultMessage = "No results found according to the search criteria...",
+                          string $failMessage = "The query could not be completed..."): FPDF {
 
     if (class_exists("FPDF")) { // Checks if FPDF has been correctly imported
 
         $query = mysqli_query($conn, $queryString);
 
         if ($query) {
-            if (mysqli_num_rows($query) != 0) { // If there is at least 1 result
+            $resultNum = mysqli_num_rows($query);
+            if ($resultNum != 0) { // If there is at least 1 result
 
                 if ($margin == -1) { // Calculates the margin
                     $colNum = mysqli_num_fields($query);

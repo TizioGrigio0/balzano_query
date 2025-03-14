@@ -1,0 +1,159 @@
+Index: tizio_query.inc
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?php\r\n\r\n// All the variables needed for the connection, CHANGE WHERE NEEDED.\r\n$host = 'localhost';\r\n$password = '';\r\n$user = 'root';\r\n$db = 'tizio_dbName';\r\n$conn = mysqli_connect($host, $user, $password, $db);\r\n\r\n/**\r\n * Saves all the data inside the SQL database.\r\n * @param mysqli $conn is the connection to the database\r\n * @param String $tabName the name of the table to which you add values\r\n * @param Array $assArray An associative array with all the attributes and values to add to the table\r\n * @returns Boolean True or false based on if it was a successful operation or not\r\n */\r\n\r\nfunction save_data(mysqli $conn, $tabName, $assArray) {\r\n    // Adds the keys to the command\r\n    $command = \"INSERT INTO $tabName(\";\r\n    $i = 0;\r\n    foreach($assArray as $key => $value) {\r\n        if($i++) $command .= \",\"; // If it's not the first loop, add ','\r\n        $command .= \"$key\";\r\n        // Format:\r\n        // table($key,$key,$key)\r\n    } // Foreach key\r\n    // Adds the values to the command\r\n    $i = 0;\r\n    $command .= \") VALUES(\";\r\n    foreach($assArray as $value) { // For each value passed\r\n        $isNumber = gettype($value) != 'integer' && gettype($value) != 'double';\r\n        if($i++) $command .= ','; // If it's not the first loop, add ','\r\n        // If the value is not a number, add '\r\n        if ($isNumber) $command .= \"'\";\r\n        $command .= \"$value\";\r\n        if ($isNumber) $command .= \"'\";\r\n        // Format:\r\n        // VALUES(value,'strvalue','value')\r\n    } // Foreach value\r\n\r\n    $command .= \")\"; // Close the command\r\n\r\n    $query = mysqli_query($conn, $command);\r\n    if ($query) { // If query was successful\r\n        return true;\r\n    } else {\r\n        return false;\r\n    }\r\n} // save_data\r\n\r\n/**\r\n * Prints all the data that comes from a query in a table <br>\r\n * \\<TABLE\\> uses class \"tizio_formattedTable\" <br>\r\n * \\<TR\\> uses class \"tizio_formattedTr\" <br>\r\n * \\<TH\\> uses class \"tizio_formattedTh\" <br>\r\n * \\<TD\\> uses class \"tizio_formattedTd\"\r\n * @param mysqli $conn is the connection to the database\r\n * @param String $queryString A string of the query\r\n * @param string $noResultMessage Is the message that will be printed in case no results appear\r\n * @param string $failMessage Is the message that will be printed in case some error happens.\r\n */\r\nfunction print_query(mysqli $conn, $queryString,\r\n                     $noResultMessage = \"No results found according to the search criteria...\",\r\n                     $failMessage = \"The query could not be completed...\") {\r\n\r\n    $query = mysqli_query($conn, $queryString);\r\n\r\n    if ($query) {\r\n        if (mysqli_num_rows($query) != 0) { // If there is at least 1 result\r\n            $i = 0;\r\n            echo \"<table class='tizio_formattedTable'>\";\r\n            while($row = mysqli_fetch_assoc($query)) {\r\n                echo \"<tr class='tizio_formattedTr'>\";\r\n                if($i++ == 0) { // Only on the first cycle (Header)\r\n                    foreach($row as $key => $value) { // Prints each key\r\n                        echo \"<th class='tizio_formattedTh'>$key</th>\";\r\n                    }\r\n                    echo \"</tr><tr>\";\r\n                } // If first cycle\r\n\r\n                foreach($row as $value) { // Prints all the values (Body)\r\n                    echo \"<td class='tizio_formattedTd'>$value</td>\";\r\n                } // foreach\r\n                echo \"</tr>\";\r\n            } // while\r\n            echo \"</table>\";\r\n        } else { // If the result is empty\r\n            echo \"<i>$noResultMessage</i>\";\r\n        }\r\n    } else {\r\n        echo \"<i>$failMessage</i>\";\r\n    } // else closes\r\n\r\n} // print_query function\r\n\r\n/**\r\n * Trims all the strings and makes all the first letters in the strings in the array capital\r\n * @param Array $assArray The array to format\r\n * @return Array The new formatted array\r\n */\r\nfunction format_array($assArray) {\r\n    $newArray = array();\r\n    foreach($assArray as $key => $value) {\r\n        $newArray[$key] =  trim(ucwords($value));\r\n    }\r\n    return $newArray;\r\n}\r\n\r\n/**\r\n * Runs mysqli_real_escape_string and stripslashes for each value in the array.\r\n * @param $assArray Array The array to secure\r\n * @return Array The new secured array\r\n */\r\nfunction secure_array($conn, $assArray) {\r\n    $newArray = array();\r\n    foreach($assArray as $key => $value) {\r\n        $newArray[$key] =  mysqli_real_escape_string($conn, stripslashes($value));\r\n    }\r\n    return $newArray;\r\n}\r\n\r\n\r\n/**\r\n * <b>Has to be run before anything gets written into the page <br>\r\n * Also requires the library \"FPDF\" to be imported beforehand </b><br>\r\n * <br>\r\n * Will add a table with the result of the query to the pdf <br>\r\n * This function does not add any pages, it just prints the results of the query\r\n * @param mysqli $conn is the connection to the database (not the object)\r\n * @param String $queryString A string of the query\r\n * @param FPDF $pdf The pdf file in which the query will be printed\r\n * @param int $margin Decides the margin of the table. If -1, center the table.\r\n * @param int $cellWidth The width of a cell (crazy right?)\r\n * @param int $fontSize The size of the fonts in the table. The header font will be 1.25x\r\n * @param int $border The size of the border\r\n * @param string $noResultMessage Is the message that will be printed in case no results appear\r\n * @param string $failMessage Is the message that will be printed in case some error happens.\r\n */\r\nfunction pdf_query(mysqli $conn, $queryString, FPDF $pdf, $margin = -1, $cellWidth = 60, $fontSize = 12, $border = 1,\r\n                   $noResultMessage = \"No results found according to the search criteria...\",\r\n                   $failMessage = \"The query could not be completed...\") {\r\n\r\n    if (class_exists(\"FPDF\")) { // Checks if FPDF has been correctly imported\r\n\r\n        $query = mysqli_query($conn, $queryString);\r\n\r\n        if ($query) {\r\n            if (mysqli_num_rows($query) != 0) { // If there is at least 1 result\r\n\r\n                if ($margin == -1) { // Calculates the margin\r\n                    $colNum = mysqli_num_fields($query);\r\n                    $tableWidth = $colNum * $cellWidth;\r\n                    $pageWidth = $pdf->GetPageWidth();\r\n                    $margin = ($pageWidth - $tableWidth) / 2;\r\n                }\r\n\r\n                $i = 0;\r\n                while($row = mysqli_fetch_assoc($query)) {\r\n                    if($i++ == 0) { // Only in the first cycle\r\n                        $pdf->SetX($margin);\r\n                        $pdf->setfont('Arial','B',$fontSize*1.25); // Sets the font of the header\r\n                        foreach($row as $key => $value) { // Sets the table header\r\n                            $pdf->cell($cellWidth, 10, $key, $border, 0, 'C');\r\n                        }\r\n                        $pdf->ln(); // New line (only first cycle)\r\n                    } // Close if first cycle\r\n                    $pdf->SetX($margin);\r\n                    $pdf->setfont('Arial','',$fontSize); // Sets the font of the body\r\n                    foreach($row as $value) { // For each value in the query\r\n                        $pdf->cell($cellWidth, 10, $value, $border, 0, 'C');\r\n                    } // foreach\r\n                    $pdf->ln(); // New line\r\n                } // while\r\n\r\n                // Returns the pdf file\r\n                return $pdf;\r\n\r\n            } else { // In case the result is empty\r\n                echo \"<i>$noResultMessage</i>\";\r\n            }\r\n        } else {\r\n            echo \"<i>$failMessage</i>\";\r\n        } // else\r\n\r\n    } else { // In case the library for pdf hasn't been imported, give an error\r\n        die(\"FPDF HAS NOT BEEN IMPORTED!\");\r\n    }\r\n\r\n    return $pdf; // In case something goes wrong, return the pdf unchanged\r\n} // PDF query function\r\n?>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/tizio_query.inc b/tizio_query.inc
+--- a/tizio_query.inc	(revision c1237df8f7a6fd1e7f94e2f7906699b597d0c7d4)
++++ b/tizio_query.inc	(date 1741909945034)
+@@ -12,10 +12,10 @@
+  * @param mysqli $conn is the connection to the database
+  * @param String $tabName the name of the table to which you add values
+  * @param Array $assArray An associative array with all the attributes and values to add to the table
+- * @returns Boolean True or false based on if it was a successful operation or not
++ * @return Boolean True or false based on if it was a successful operation or not
+  */
+ 
+-function save_data(mysqli $conn, $tabName, $assArray) {
++function save_data(mysqli $conn, string $tabName, array $assArray): bool {
+     // Adds the keys to the command
+     $command = "INSERT INTO $tabName(";
+     $i = 0;
+@@ -59,15 +59,17 @@
+  * @param String $queryString A string of the query
+  * @param string $noResultMessage Is the message that will be printed in case no results appear
+  * @param string $failMessage Is the message that will be printed in case some error happens.
++ * @return int The number of results of the query
+  */
+-function print_query(mysqli $conn, $queryString,
+-                     $noResultMessage = "No results found according to the search criteria...",
+-                     $failMessage = "The query could not be completed...") {
++function print_query(mysqli $conn, string $queryString,
++                            string $noResultMessage = "No results found according to the search criteria...",
++                            string $failMessage = "The query could not be completed..."): int {
+ 
+     $query = mysqli_query($conn, $queryString);
+ 
+     if ($query) {
+-        if (mysqli_num_rows($query) != 0) { // If there is at least 1 result
++        $resultsNum = mysqli_num_rows($query);
++        if ($resultsNum != 0) { // If there is at least 1 result
+             $i = 0;
+             echo "<table class='tizio_formattedTable'>";
+             while($row = mysqli_fetch_assoc($query)) {
+@@ -85,13 +87,14 @@
+                 echo "</tr>";
+             } // while
+             echo "</table>";
++            return $resultsNum;
+         } else { // If the result is empty
+             echo "<i>$noResultMessage</i>";
+         }
+     } else {
+         echo "<i>$failMessage</i>";
+     } // else closes
+-
++    return 0;
+ } // print_query function
+ 
+ /**
+@@ -99,7 +102,7 @@
+  * @param Array $assArray The array to format
+  * @return Array The new formatted array
+  */
+-function format_array($assArray) {
++function format_array(array $assArray): array {
+     $newArray = array();
+     foreach($assArray as $key => $value) {
+         $newArray[$key] =  trim(ucwords($value));
+@@ -112,7 +115,7 @@
+  * @param $assArray Array The array to secure
+  * @return Array The new secured array
+  */
+-function secure_array($conn, $assArray) {
++function secure_array(mysqli $conn, array $assArray): array {
+     $newArray = array();
+     foreach($assArray as $key => $value) {
+         $newArray[$key] =  mysqli_real_escape_string($conn, stripslashes($value));
+@@ -137,16 +140,17 @@
+  * @param string $noResultMessage Is the message that will be printed in case no results appear
+  * @param string $failMessage Is the message that will be printed in case some error happens.
+  */
+-function pdf_query(mysqli $conn, $queryString, FPDF $pdf, $margin = -1, $cellWidth = 60, $fontSize = 12, $border = 1,
+-                   $noResultMessage = "No results found according to the search criteria...",
+-                   $failMessage = "The query could not be completed...") {
++function pdf_query(mysqli $conn, $queryString, FPDF $pdf, int $margin = -1, int $cellWidth = 60, int $fontSize = 12, int $border = 1,
++                          string $noResultMessage = "No results found according to the search criteria...",
++                          string $failMessage = "The query could not be completed..."): FPDF {
+ 
+     if (class_exists("FPDF")) { // Checks if FPDF has been correctly imported
+ 
+         $query = mysqli_query($conn, $queryString);
+ 
+         if ($query) {
+-            if (mysqli_num_rows($query) != 0) { // If there is at least 1 result
++            $resultNum = mysqli_num_rows($query);
++            if ($resultNum != 0) { // If there is at least 1 result
+ 
+                 if ($margin == -1) { // Calculates the margin
+                     $colNum = mysqli_num_fields($query);
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"AutoImportSettings\">\r\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\r\n  </component>\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"54789e22-5c1c-4456-bb0d-05bc3b591339\" name=\"Changes\" comment=\"\">\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/tizio_query.inc\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/tizio_query.inc\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"ComposerSettings\">\r\n    <execution />\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"ProjectColorInfo\"><![CDATA[{\r\n  \"associatedIndex\": 8\r\n}]]></component>\r\n  <component name=\"ProjectId\" id=\"2tuRHJlQEydVcsToYKu9uzV9pAd\" />\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\"><![CDATA[{\r\n  \"keyToString\": {\r\n    \"ASKED_ADD_EXTERNAL_FILES\": \"true\",\r\n    \"RunOnceActivity.OpenProjectViewOnStart\": \"true\",\r\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\r\n    \"git-widget-placeholder\": \"main\",\r\n    \"node.js.detected.package.eslint\": \"true\",\r\n    \"node.js.detected.package.tslint\": \"true\",\r\n    \"node.js.selected.package.eslint\": \"(autodetect)\",\r\n    \"node.js.selected.package.tslint\": \"(autodetect)\",\r\n    \"nodejs_package_manager_path\": \"npm\",\r\n    \"vue.rearranger.settings.migration\": \"true\"\r\n  }\r\n}]]></component>\r\n  <component name=\"SharedIndexes\">\r\n    <attachedChunks>\r\n      <set>\r\n        <option value=\"bundled-php-predefined-ba97393d7c68-6f8e3395a2b4-com.jetbrains.php.sharedIndexes-PS-233.14475.35\" />\r\n      </set>\r\n    </attachedChunks>\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"54789e22-5c1c-4456-bb0d-05bc3b591339\" name=\"Changes\" comment=\"\" />\r\n      <created>1741199883606</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1741199883606</updated>\r\n      <workItem from=\"1741199884689\" duration=\"1270000\" />\r\n    </task>\r\n    <servers />\r\n  </component>\r\n  <component name=\"TypeScriptGeneratedFilesManager\">\r\n    <option name=\"version\" value=\"3\" />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision c1237df8f7a6fd1e7f94e2f7906699b597d0c7d4)
++++ b/.idea/workspace.xml	(date 1741909961333)
+@@ -13,15 +13,18 @@
+     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+     <option name="LAST_RESOLUTION" value="IGNORE" />
+   </component>
+-  <component name="ComposerSettings">
++  <component name="ComposerSettings" synchronizationState="SYNCHRONIZE">
+     <execution />
+   </component>
+   <component name="Git.Settings">
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+   </component>
+-  <component name="ProjectColorInfo"><![CDATA[{
+-  "associatedIndex": 8
+-}]]></component>
++  <component name="MarkdownSettingsMigration">
++    <option name="stateVersion" value="1" />
++  </component>
++  <component name="ProjectColorInfo">{
++  &quot;associatedIndex&quot;: 8
++}</component>
+   <component name="ProjectId" id="2tuRHJlQEydVcsToYKu9uzV9pAd" />
+   <component name="ProjectViewState">
+     <option name="hideEmptyMiddlePackages" value="true" />
+@@ -33,11 +36,13 @@
+     "RunOnceActivity.OpenProjectViewOnStart": "true",
+     "RunOnceActivity.ShowReadmeOnStart": "true",
+     "git-widget-placeholder": "main",
++    "last_opened_file_path": "D:/Progetti/Balzano_query",
+     "node.js.detected.package.eslint": "true",
+     "node.js.detected.package.tslint": "true",
+     "node.js.selected.package.eslint": "(autodetect)",
+     "node.js.selected.package.tslint": "(autodetect)",
+     "nodejs_package_manager_path": "npm",
++    "settings.editor.selected.configurable": "reference.webide.settings.project.settings.php.composer",
+     "vue.rearranger.settings.migration": "true"
+   }
+ }]]></component>
+@@ -56,7 +61,9 @@
+       <option name="number" value="Default" />
+       <option name="presentableId" value="Default" />
+       <updated>1741199883606</updated>
+-      <workItem from="1741199884689" duration="1270000" />
++      <workItem from="1741199884689" duration="1433000" />
++      <workItem from="1741879805774" duration="281000" />
++      <workItem from="1741909683674" duration="277000" />
+     </task>
+     <servers />
+   </component>
